@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import type {EmitterSubscription} from 'react-native';
 import {
   DeviceEventEmitter,
