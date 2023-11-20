@@ -316,13 +316,7 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
 
 
         do {
-            var sessionOptions: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
-
-            if #available(iOS 14.5, *) {
-                sessionOptions.insert(.overrideMutedMicrophoneInterruption)
-            }
-
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: sessionOptions)
+            try audioSession.setCategory(.playAndRecord, mode: avMode, options: [AVAudioSession.CategoryOptions.defaultToSpeaker, AVAudioSession.CategoryOptions.allowBluetooth])
             try audioSession.setActive(true)
 
             audioSession.requestRecordPermission { granted in
@@ -400,13 +394,7 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
         audioSession = AVAudioSession.sharedInstance()
 
         do {
-            var sessionOptions: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth]
-
-            if #available(iOS 14.5, *) {
-                sessionOptions.insert(.overrideMutedMicrophoneInterruption)
-            }
-
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: sessionOptions)
+             try audioSession.setCategory(.playAndRecord, mode: .default, options: [AVAudioSession.CategoryOptions.defaultToSpeaker, AVAudioSession.CategoryOptions.allowBluetooth])
             try audioSession.setActive(true)
         } catch {
             reject("RNAudioPlayerRecorder", "Failed to play", nil)
