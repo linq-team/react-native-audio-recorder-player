@@ -414,7 +414,7 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
         audioPlayer.play()
         resolve(audioFileURL?.absoluteString)
     }
-    
+
     @objc
     public func playerDidFinishPlaying(notification: Notification) {
         if let playerItem = notification.object as? AVPlayerItem {
