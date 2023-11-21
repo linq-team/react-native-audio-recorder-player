@@ -52,5 +52,3 @@ Example/package-lock.json
 package-lock.json
 
 # Built files
-tsconfig.tsbuildinfo
-index.js.flow
