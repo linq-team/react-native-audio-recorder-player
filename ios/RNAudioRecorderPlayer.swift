@@ -26,7 +26,11 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
     var audioPlayer: AVPlayer!
     var playTimer: Timer?
     var timeObserverToken: Any?
+    
+    var backgroundRecordingTask: UIBackgroundTaskIdentifier = .invalid
 
+    var BACKGROUND_RECORDING_TASK_NAME: String = "background.recording"
+    
     override init() {
         super.init()
         setupInterruptionObserver()
@@ -124,11 +128,14 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
         if (audioRecorder == nil) {
             return reject("RNAudioPlayerRecorder", "Recorder is not recording", nil)
         }
+        
+        endRecordingBackgroundTask()
 
         recordTimer?.invalidate()
         recordTimer = nil;
 
         audioRecorder.pause()
+        
         resolve("Recorder paused!")
     }
 
@@ -140,6 +147,8 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
         if (audioRecorder == nil) {
             return reject("RNAudioPlayerRecorder", "Recorder is nil", nil)
         }
+        
+        startRecordingBackgroundTask()
 
         audioRecorder.record()
 
@@ -171,6 +180,33 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
     func setSubscriptionDuration(duration: Double) -> Void {
         subscriptionDuration = duration
     }
+    
+    func endRecordingBackgroundTask() {
+        if backgroundRecordingTask != .invalid {
+            print("ending background recording task")
+            UIApplication.shared.endBackgroundTask(backgroundRecordingTask)
+            backgroundRecordingTask = .invalid
+        }
+    }
+    
+    func startRecordingBackgroundTask() {
+        print("starting background recording task")
+        backgroundRecordingTask = UIApplication.shared.beginBackgroundTask(withName: BACKGROUND_RECORDING_TASK_NAME) {
+            // This code is executed when the background task is about to expire.
+            // You should stop the task here.
+            self.endRecordingBackgroundTask()
+            
+            if (self.audioRecorder == nil) {
+                return
+            }
+            self.audioRecorder.stop()
+            if (self.recordTimer != nil) {
+                self.recordTimer!.invalidate()
+                self.recordTimer = nil
+            }
+        }
+    }
+    
 
     /**********               Player               **********/
 
@@ -194,6 +230,8 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
         var audioQuality = audioSets["AVEncoderAudioQualityKeyIOS"] as? Int
         var bitRate = audioSets["AVEncoderBitRateKeyIOS"] as? Int
 
+        startRecordingBackgroundTask()
+        
         setAudioFileURL(path: path)
 
         if (sampleRate == nil) {
@@ -293,6 +331,7 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
                     audioRecorder.prepareToRecord()
                     audioRecorder.delegate = self
                     audioRecorder.isMeteringEnabled = _meteringEnabled
+                    
                     let isRecordStarted = audioRecorder.record()
 
                     if !isRecordStarted {
@@ -341,14 +380,18 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
             reject("RNAudioPlayerRecorder", "Failed to stop recorder. It is already nil.", nil)
             return
         }
-
-        audioRecorder.stop()
-
-        if (recordTimer != nil) {
-            recordTimer!.invalidate()
-            recordTimer = nil
+        
+        if (self.audioRecorder == nil) {
+            return
         }
-
+        self.audioRecorder.stop()
+        if (self.recordTimer != nil) {
+            self.recordTimer!.invalidate()
+            self.recordTimer = nil
+        }
+        
+        endRecordingBackgroundTask()
+        
         resolve(audioFileURL?.absoluteString)
     }
 
