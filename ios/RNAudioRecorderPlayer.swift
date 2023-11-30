@@ -29,7 +29,7 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
     
     var backgroundRecordingTask: UIBackgroundTaskIdentifier = .invalid
 
-    var BACKGROUND_RECORDING_TASK_NAME: String = "background.recording"
+    var BACKGROUND_RECORDING_TASK_NAME: String = "com.historic.recording"
     
     override init() {
         super.init()
@@ -45,25 +45,66 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
     }
 
    @objc private func handleInterruption(notification: Notification) {
+       
        guard let info = notification.userInfo,
              let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
            return
        }
-
+       print("----------------------------")
+       print("handle interruption - called")
        switch type {
        case .began:
+           print("handle interruption - started")
+           sendLocalRecordingInterruptedNotification()
            if audioRecorder.isRecording == true {
+               print("handle interruption - pausing recording")
                audioRecorder.pause()
            }
        case .ended:
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-              self.audioRecorder.record()
+            print("handle interruption - ended")
+            Thread.sleep(forTimeInterval: 1)
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            print("handle interruption - trying to resume recording")
+            audioRecorder.record()
+            if self.audioRecorder.isRecording == true {
+                print("handle interruption - recording resumed")
+            } else {
+                sendLocalRecordingRestartNotification()
+//                recordTimer?.invalidate()
+//                recordTimer = nil;
+//
+//                audioRecorder.pause()
+//                print("handle interruption - recording failed to resume")
+//                // stop execution for 5 seconds
+//                
+//                handleInterruption(notification: notification)
             }
+//            }
        @unknown default:
            break
        }
    }
+    
+    private func sendLocalRecordingInterruptedNotification() {
+        Thread.sleep(forTimeInterval: 1)
+        let content = UNMutableNotificationContent()
+        content.title = "Recording interrupted"
+        content.body = "Please open historic app to make sure and resume the recording after you are done with other activities."
+        content.sound = UNNotificationSound.default
+        let request = UNNotificationRequest(identifier: "Recording interrupted", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+    }
+    
+    private func sendLocalRecordingRestartNotification() {
+        Thread.sleep(forTimeInterval: 1)
+        let content = UNMutableNotificationContent()
+        content.title = "Not able to continue recording"
+        content.body = "Tap to open the app to continue the recording."
+        content.sound = UNNotificationSound.default
+        let request = UNNotificationRequest(identifier: "recording restart", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+    }
 
     override static func requiresMainQueueSetup() -> Bool {
       return true
@@ -144,6 +185,7 @@ class RNAudioRecorderPlayer: RCTEventEmitter, AVAudioRecorderDelegate {
         resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
+        print("resumeRecorder iOS function called")
         if (audioRecorder == nil) {
             return reject("RNAudioPlayerRecorder", "Recorder is nil", nil)
         }
